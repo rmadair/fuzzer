@@ -8,9 +8,9 @@ MAX32 = 0xffffffff
 values_8bit  = [0x00, 0x01, MAX8/2-16,  MAX8/2-1,  MAX8/2,  MAX8/2+1,  MAX8/2+16,  MAX8-16,  MAX8-1,  MAX8]
 values_16bit = [0x00, 0x01, MAX16/2-16, MAX16/2-1, MAX16/2, MAX16/2+1, MAX16/2+16, MAX16-16, MAX16-1, MAX16]
 values_32bit = [0x00, 0x01, MAX32/2-16, MAX32/2-1, MAX32/2, MAX32/2+1, MAX32/2+16, MAX32-16, MAX32-1, MAX32]
-values_strings = [{'value':list("A"*100),  'type':'insert', 'size':None}, \
-                  {'value':list("A"*1000), 'type':'insert', 'size':None}, \
-                  {'value':list("A"*10000),'type':'insert', 'size':None}, \
+values_strings = [{'value':list("B"*100),  'type':'insert', 'size':None}, \
+                  {'value':list("B"*1000), 'type':'insert', 'size':None}, \
+                  {'value':list("B"*10000),'type':'insert', 'size':None}, \
                   {'value':list("%s"*10),  'type':'insert', 'size':None}, \
                   {'value':list("%s"*100), 'type':'insert', 'size':None}]
 
@@ -30,6 +30,9 @@ class ValueGenerator():
         else:
             raise Exception('unknown value type passed to ValueGenerator, %s' % value_type)
 
+        # turn them into writeable bytes
+        self.createWriteable(self.values)
+
     def value_to_bytes(self, value, vtype='dword'):
         '''Given a value as an int, return it in little endian bytes of length type.
            Example, given 0xabcdeff with type "dword" : (255, 222, 188, 10) '''
@@ -39,6 +42,15 @@ class ValueGenerator():
                 return list(struct.unpack('BB', struct.pack('<H', value)))
         elif vtype == 'dword':
                 return list(struct.unpack('BBBB', struct.pack('<I', value)))
+
+    def createWriteable(self, new_bytes):     
+        ''' When writting to a file, a string is required. This function itterates over
+            all values generated, and turns any int values into their representative char. '''
+
+        for value_dict in self.values:                                  # get each dictionary
+            for offset, value in enumerate(value_dict['value']):        # go through each of the indexes in the 'value' 
+                if type(value) == int:                                  # if it's an int
+                    value_dict['value'][offset] = chr(value)            # turn it into it's char representation
 
     def getValues(self):
         return self.values
@@ -85,16 +97,9 @@ class Mutator():
                 mutated_file_name = os.path.join(self.tmp_directory, mutated_file_name)
                 self.mutated_file_num += 1
                 fopen = open(mutated_file_name, 'wb')
-                self.createWriteable(new_bytes)
                 fopen.write( ''.join(new_bytes) ) #### SHOULD CALL CREATEWRITEABLE BEFORE REPLACE/INSERTING !!!!!
                 fopen.close()
-                #if '44' in mutated_file_name or '45' in mutated_file_name:
-                #    print 'os.path.exists(%s) = %d' % (mutated_file_name, os.path.exists(mutated_file_name))
                 yield (offset, value['value'], value['type'], mutated_file_name)
                 #except:
                 #    raise Exception('[*] unable to open tmp file for mutation! %s '%mutated_file_name)
 
-    def createWriteable(self, new_bytes):       ### XXX <----- IS THIS CHANGING ALL NUMBERS IN THE FILE TO CHARS? AND NOT JUST THE PAYLOAD???????
-        for offset, value in enumerate(new_bytes):
-            if str.isdigit(str(value)):
-                new_bytes[offset] = chr(value)
