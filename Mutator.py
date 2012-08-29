@@ -55,8 +55,9 @@ class ValueGenerator():
     def getValues(self):
         return self.values
 
-class Mutator():
+class Mutator(ValueGenerator):
     def __init__(self, original_file, tmp_directory, value_type):
+        ValueGenerator.__init__(self, value_type=value_type)
         self.original_file      = original_file
         self.tmp_directory      = tmp_directory
         self.value_type         = value_type
@@ -68,22 +69,21 @@ class Mutator():
         self.original_file_base = os.path.splitext(self.original_file_base)[0]    # get the file base
         self.original_file_ext  = os.path.splitext(original_file)[1]              # get the file extention
 
-        self.value_generator    = ValueGenerator(value_type=value_type)
         self.total_mutations    = None
 
         # get the contents of the original file
-        try:
-            fopen = open(self.original_file, 'r')
-            self.original_bytes = fopen.read()
-            self.original_bytes_len = len(self.original_bytes)
-            self.total_mutations    = self.original_bytes_len * len(self.value_generator.values)
-            fopen.close()
-        except:
-            raise Exception('[*] Mutator unable to open original_file')
+        #try:
+        fopen = open(self.original_file, 'r')
+        self.original_bytes = fopen.read()
+        self.original_bytes_len = len(self.original_bytes)
+        self.total_mutations    = self.original_bytes_len * len(self.values)
+        fopen.close()
+        #except:
+        #    raise Exception('[*] Mutator unable to open original_file %s' % self.original_file)
 
     def createNext(self):
         for offset in range(self.original_bytes_len):
-            for value in self.value_generator.getValues():
+            for value in self.getValues():
                 new_bytes = list(self.original_bytes[:])
                 if value['type'] == 'replace':
                     new_bytes[offset:offset+value['size']] = value['value']                 # if 'replace', then just substitute/replace the desired bytes
@@ -99,7 +99,7 @@ class Mutator():
                 fopen = open(mutated_file_name, 'wb')
                 fopen.write( ''.join(new_bytes) ) #### SHOULD CALL CREATEWRITEABLE BEFORE REPLACE/INSERTING !!!!!
                 fopen.close()
-                yield (offset, value['value'], value['type'], mutated_file_name)
+                yield (offset, self.values.index(value), value['type'], mutated_file_name)
                 #except:
                 #    raise Exception('[*] unable to open tmp file for mutation! %s '%mutated_file_name)
 

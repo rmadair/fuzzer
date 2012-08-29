@@ -1,6 +1,7 @@
 from sys import exit, argv
 from Mutator import Mutator
 from Executor import executor
+from time import ctime
 import threading
 import logging
 
@@ -35,27 +36,31 @@ if __name__ == "__main__":
     logfile_name    = argv[6]   ##### XXXXXX I WANT TO LOG THESE INITIAL VALUES
     save_directory  = argv[7]
 
-    print 'cmd_line        = %s' % cmd_line
-    print 'original_file   = %s' % original_file
-    print 'temp_director   = %s' % temp_directory
-    print 'mutation_type   = %s' % mutation_type
-    print 'max_processes   = %s' % max_processes
-    print 'logfile_name    = %s' % logfile_name
-    print 'save_directory  = %s' % save_directory
     
     logging.basicConfig(filename=logfile_name, level=logging.INFO)
-    logging.info("test starting")
-    mutator = Mutator(original_file, temp_directory, mutation_type)    
-    print 'total mutations = %d' % mutator.total_mutations
+    logging.info("Starting Fuzzer")
+    logging.info("%s" % ctime())
+    logging.info('cmd_line        = %s' % cmd_line)
+    logging.info('original_file   = %s' % original_file)
+    logging.info('temp_director   = %s' % temp_directory)
+    logging.info('mutation_type   = %s' % mutation_type)
+    logging.info('max_processes   = %s' % max_processes)
+    logging.info('logfile_name    = %s' % logfile_name)
+    logging.info('save_directory  = %s' % save_directory)
 
-    counter = 1
-    
-    for (offset, value, value_type, new_file) in mutator.createNext():
+    mutator = Mutator(original_file, temp_directory, mutation_type)    
+    logging.info('total mutations = %d' % mutator.total_mutations)
+    logging.info('possible mutation list :')
+    for offset, mutation in enumerate(mutator.getValues()):
+        logging.info('[%02d] : %s'% (offset, repr(mutation)) )
+
+    counter = 0
+    for (offset, value_index, value_type, new_file) in mutator.createNext():
         if counter==50:
             break
         torun = '%s %s' % (cmd_line, new_file)
         logger=logging.getLogger('Executor-%d'%counter)
-        thread = threading.Thread(target=executor, args=(torun,offset,value,value_type,new_file,counter,save_directory,logger))
+        thread = threading.Thread(target=executor, args=(torun,offset,value_index,value_type,new_file,counter,save_directory,logger))
         thread.run()
         while thread.isAlive():
             continue
