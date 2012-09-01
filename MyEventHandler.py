@@ -3,22 +3,28 @@ from shutil import copy
 from os import unlink
 import glob
 
+# todo
+#
+# - would like register contents and stack dump values to be checked for pointers to strings
+
 class MyEventHandler (EventHandler):
     ''' Override the default event handler to catch any signals we are interested in. At the same
         time log any output locally to self.output so the monitor can aggregate output. '''
 
     def __init__(self, filename, save_directory):
+        super(MyEventHandler, self).__init__()
         self.filename           = filename
         self.save_directory     = save_directory
         self.output             = '' # where data to be logged will go
         self.regs_of_interest   = ['Esp', 'Ebp', 'Eip', 'Eax', 'Ebx', 'Ecx', 'Edx', 'Edi', 'Esi']
-        self._EventHandler__apiHooks = None	# XXXXXXXXX would calling super fix this weird thing ??????
 
     def getOutput(self):
         ''' simple get method to return self.output '''
         return self.output
         
     def handleEvent(self, s, event):
+        ''' Given an event has occured, gather up a bunch of usefull information (registers, 
+            stack, etc.) and build up the self.output string with this information. '''
         thread  = event.get_thread()
         context = thread.get_context()
         proc    = thread.get_process()
@@ -41,7 +47,6 @@ class MyEventHandler (EventHandler):
         #print thread.peek_pointers_in_registers()
 
         self.output += '[*] Copying file to safe directory\n'
-        print 'copy(%s, %s)' % (self.filename, self.save_directory)
         copy(self.filename, self.save_directory)
 
         self.output += '[*] Killing process...\n'

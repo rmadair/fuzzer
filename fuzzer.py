@@ -25,15 +25,12 @@ if __name__ == "__main__":
     if len(argv) != 8:
         usage()
 
-    # denote globals
-    global save_directory
-
     cmd_line        = argv[1]
     original_file   = argv[2]
     temp_directory  = argv[3]
     mutation_type   = argv[4]
     max_processes   = argv[5]
-    logfile_name    = argv[6]   ##### XXXXXX I WANT TO LOG THESE INITIAL VALUES
+    logfile_name    = argv[6]
     save_directory  = argv[7]
 
     
@@ -60,7 +57,7 @@ if __name__ == "__main__":
             break
         torun = '%s %s' % (cmd_line, new_file)
         logger=logging.getLogger('Executor-%d'%counter)
-        thread = threading.Thread(target=executor, args=(torun,offset,value_index,value_type,new_file,counter,save_directory,logger))
+        thread = threading.Thread(target=executor, args=(torun,offset,value_index,new_file,counter,save_directory,logger))
         thread.run()
         while thread.isAlive():
             continue
