@@ -3,11 +3,9 @@ from sys import stdout
 from Mutator import Mutator
 from Executor import executor
 from time import ctime, time
-from multiprocessing import Pool, Process, Pipe
-from subprocess import Popen
-import threading
+from multiprocessing import Pool
+from optparse import OptionParser
 import logging
-import gc
 
 # todo
 #
@@ -16,35 +14,45 @@ import gc
 #
 # - allow a max time for a process to run
 #
-# - use the arg parse library
-#
 # - support multiple processes
+#
+# - add "example" to usage()
 
-def usage():
-    print 'Usage : %s [program_cmd_line] [original_file] [temp_directory] [mutation_type] [max_processes] [log_file][save_directory]' % argv[0]
-    print ''
-    print 'program_cmd_line   - The command line, with a %s for the filename, that will be used to launch the target app'
-    print 'original_file      - The original file to be mutated'
-    print 'temp_directory     - A temporary directory for files to be placed'
-    print 'mutation_type      - "byte", "word" or "dword" mutations'
-    print 'max_processes      - The maximum number of simultaneous processes'
-    print 'log_file           - A destination file for logging'
-    print 'save_directory     - A directory to files that cause crashes will be saved to'
-    print ''
-    exit(1)
+def check_usage(check_args):
+    ''' Parse command line options '''
+
+    parser = OptionParser()
+    parser.add_option('-p', action="store", dest="program_cmd_line", help='Program to launch, the full command line that will be executed', metavar="program")
+    parser.add_option('-f', action="store", dest="original_file", help='File to be mutated', metavar="file")
+    parser.add_option('-d', action="store", dest="temp_directory", help='Directory for temporary files to be created', metavar="temp_directory")
+    parser.add_option('-t', action="store", dest="mutation_type", help='Type of mutation ("byte", "word", "dword")', metavar="mutation_type")
+    parser.add_option('-l', action="store", dest="log_file", help='Log file', metavar="log")
+    parser.add_option('-s', action="store", dest="save_directory", help='Save-directory, for files to be saved that cause crashes', metavar="save_directory")
+    parser.add_option('-m', action="store", dest="max_processes", help='Max Processes (not implemented currently)', metavar="max_processes")
+    parser.epilog = "Example:\n\n"
+    parser.epilog += './fuzzer.py -p "C:\Program Files\Blah\prog.exe" -f original_file.mp3 -d temp -t dword -l log.txt -s save'
+    options, args = parser.parse_args(check_args)
+
+    # pull them out
+    program_cmd_line = options.program_cmd_line
+    original_file    = options.original_file
+    temp_directory   = options.temp_directory
+    mutation_type    = options.mutation_type
+    log_file         = options.log_file
+    save_directory   = options.save_directory
+    max_processes    = 1 # options.max_processes
+
+    # make sure enough args are passed
+    if not all((program_cmd_line, original_file, temp_directory, mutation_type, log_file, save_directory)):
+        parser.error("Incorrect number of arguments")
+
+    return (program_cmd_line, original_file, temp_directory, mutation_type, log_file, save_directory, max_processes)
+
 
 if __name__ == "__main__":
-    if len(argv) != 8:
-        usage()
 
-    # parse command line args
-    cmd_line        = argv[1]
-    original_file   = argv[2]
-    temp_directory  = argv[3]
-    mutation_type   = argv[4]
-    max_processes   = argv[5]
-    logfile_name    = argv[6]
-    save_directory  = argv[7]
+    # check command line args
+    (cmd_line, original_file, temp_directory, mutation_type, logfile_name, save_directory, max_processes) = check_usage(argv[1:])
 
     # typecast, create the worker pool
     max_processes   = int(max_processes)
