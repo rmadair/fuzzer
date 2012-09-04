@@ -2,12 +2,32 @@
 Description :
 -------------
 
-A work in progress :)
+- A work in progress :)
+- This is a mutation based file fuzzer, using the winappdbg library for process management.
 
-This is a mutation based file fuzzer, using the winappdbg library for process management.
+Usage :
+-------
+
+Usage: fuzzer.py [options]
+
+Options:
+  -h, --help         show this help message and exit
+  -p program         Program to launch, the full command line that will be
+                     executed
+  -f file            File to be mutated
+  -d temp_directory  Directory for temporary files to be created
+  -t mutation_type   Type of mutation ("byte", "word", "dword")
+  -l log             Log file
+  -s save_directory  Save-directory, for files to be saved that cause crashes
+  -m max_processes   Max Processes (not implemented currently)
+
+Example:  
+
+./fuzzer.py -p "C:\Program Files\Blah\prog.exe" -f original_file.mp3 -d temp -t dword -l log.txt -s save
+
+
 Sample run-time output, with a crash occuring towards the end of the run :
-
-
+--------------------------------------------------------------------------
 
 00% - Sat Sep 01 18:37:49 2012
 10% - Sat Sep 01 18:37:56 2012
