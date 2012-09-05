@@ -3,7 +3,7 @@ from sys import stdout
 from Mutator import Mutator
 from Executor import executor
 from time import ctime, time
-from multiprocessing import Pool
+from multiprocessing import Process
 from optparse import OptionParser
 import logging
 
@@ -12,11 +12,7 @@ import logging
 # - make the to_run string (and the way the user defines where the mutated file goes in the command line) more generic
 #   - fill in with a regex or something
 #
-# - allow a max time for a process to run
-#
 # - support multiple processes
-#
-# - add "example" to usage()
 
 def check_usage(check_args):
     ''' Parse command line options '''
@@ -48,6 +44,14 @@ def check_usage(check_args):
 
     return (program_cmd_line, original_file, temp_directory, mutation_type, log_file, save_directory, max_processes)
 
+def waitForAvailability(processes):
+    ''' Given a list of processes, continually cycle through them until one
+        is finished. Return the one that finishes '''
+
+    while True:
+        for process in processes:
+            if not process.is_alive():
+                return process
 
 if __name__ == "__main__":
 
@@ -83,6 +87,7 @@ if __name__ == "__main__":
 
     # the main loop - yield each mutation, execute and log it
     start_time = time()
+    processes = []
     for counter, (offset, value_index, value_type, new_file) in enumerate(mutator.createNext()):
 
         # just for sanity
@@ -90,10 +95,15 @@ if __name__ == "__main__":
             print '%02d%% - %s' % (percent, ctime())
             percent += 10
 
+        # wait for room, log whichever process finishes, remove it ----- WANT TO USE TUPLES OR DICTIONARIES TO STORE THE PARENT_CONN END!!!!!!
+        finished_process = waitForAvailability(processes, max_processes):
+        logging.info(finished_process)
+        processes.remove(finished_process)
+
         torun = '%s %s' % (cmd_line, new_file)
         logger=logging.getLogger('Executor-%d'%counter)
         # awesome, but creates the files up front :( - pool.apply_async(executor, (torun,offset,value_index,new_file,counter,save_directory,0), callback=output_logging_callback)#logger))
-        res = pool.apply(executor, (torun,offset,value_index,new_file,counter,save_directory))
+        process = Process(target=executor, args=(torun,offset,value_index,new_file,counter,save_directory))
         logging.info(res)
 
     # clean up and wait
