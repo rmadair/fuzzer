@@ -19,11 +19,11 @@ Options:
   -t mutation_type   Type of mutation ("byte", "word", "dword")
   -l log             Log file
   -s save_directory  Save-directory, for files to be saved that cause crashes
-  -m max_processes   Max Processes (not implemented currently)
+  -m max_processes   Max Processes 
 
 Example:  
 
-./fuzzer.py -p "C:\Program Files\Blah\prog.exe" -f original_file.mp3 -d temp -t dword -l log.txt -s save
+./fuzzer.py -p "C:\Program Files\Blah\prog.exe" -f original_file.mp3 -d temp -t dword -l log.txt -s save -m 4
 
 
 Sample run-time output, with a crash occuring towards the end of the run :

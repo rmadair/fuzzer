@@ -24,7 +24,7 @@ def check_usage(check_args):
     parser.add_option('-t', action="store", dest="mutation_type", help='Type of mutation ("byte", "word", "dword")', metavar="mutation_type")
     parser.add_option('-l', action="store", dest="log_file", help='Log file', metavar="log")
     parser.add_option('-s', action="store", dest="save_directory", help='Save-directory, for files to be saved that cause crashes', metavar="save_directory")
-    parser.add_option('-m', action="store", dest="max_processes", type="int", help='Max Processes (not implemented currently)', metavar="max_processes")
+    parser.add_option('-m', action="store", dest="max_processes", type="int", help='Max Processes', metavar="max_processes")
     parser.epilog = "Example:\n\n"
     parser.epilog += './fuzzer.py -p "C:\Program Files\Blah\prog.exe" -f original_file.mp3 -d temp -t dword -l log.txt -s save'
     options, args = parser.parse_args(check_args)
