@@ -3,7 +3,7 @@ from sys import stdout
 from Mutator import Mutator
 from Executor import executor
 from time import ctime, time
-from multiprocessing import Process
+from multiprocessing import Process, Pipe
 from optparse import OptionParser
 import logging
 
@@ -24,7 +24,7 @@ def check_usage(check_args):
     parser.add_option('-t', action="store", dest="mutation_type", help='Type of mutation ("byte", "word", "dword")', metavar="mutation_type")
     parser.add_option('-l', action="store", dest="log_file", help='Log file', metavar="log")
     parser.add_option('-s', action="store", dest="save_directory", help='Save-directory, for files to be saved that cause crashes', metavar="save_directory")
-    parser.add_option('-m', action="store", dest="max_processes", help='Max Processes (not implemented currently)', metavar="max_processes")
+    parser.add_option('-m', action="store", dest="max_processes", type="int", help='Max Processes (not implemented currently)', metavar="max_processes")
     parser.epilog = "Example:\n\n"
     parser.epilog += './fuzzer.py -p "C:\Program Files\Blah\prog.exe" -f original_file.mp3 -d temp -t dword -l log.txt -s save'
     options, args = parser.parse_args(check_args)
@@ -36,7 +36,7 @@ def check_usage(check_args):
     mutation_type    = options.mutation_type
     log_file         = options.log_file
     save_directory   = options.save_directory
-    max_processes    = 1 # options.max_processes
+    max_processes    = options.max_processes if options.max_processes else 1
 
     # make sure enough args are passed
     if not all((program_cmd_line, original_file, temp_directory, mutation_type, log_file, save_directory)):
@@ -44,24 +44,41 @@ def check_usage(check_args):
 
     return (program_cmd_line, original_file, temp_directory, mutation_type, log_file, save_directory, max_processes)
 
-def waitForAvailability(processes):
+def getOutput(pin):
+    ''' given a pipe from Multiprocessing, recv_bytes until the end '''
+    ret = ''
+    try:
+        while pin.poll() == True:
+            ret += pin.recv_bytes()
+    except: pass
+    return ret
+
+
+def waitForAvailability(processes, max_processes):
     ''' Given a list of processes, continually cycle through them until one
         is finished. Return the one that finishes '''
 
+    if len(processes) < max_processes:
+        return None
+
     while True:
         for process in processes:
-            if not process.is_alive():
+            proc = process['process']
+            if not proc.is_alive():
                 return process
+
+def logOutput(process):
+    ''' Get the output from a finished process, log it. '''
+
+    parent_conn = process['parent_conn']
+    output = getOutput(parent_conn)
+    logging.info(output)
 
 if __name__ == "__main__":
 
     # check command line args
     (cmd_line, original_file, temp_directory, mutation_type, logfile_name, save_directory, max_processes) = check_usage(argv[1:])
 
-    # typecast, create the worker pool
-    max_processes   = int(max_processes)
-    pool            = Pool(max_processes, maxtasksperchild=50)
-    
     # log basic starting information
     logging.basicConfig(filename=logfile_name, level=logging.INFO)
     logging.info("Starting Fuzzer")
@@ -95,20 +112,19 @@ if __name__ == "__main__":
             print '%02d%% - %s' % (percent, ctime())
             percent += 10
 
-        # wait for room, log whichever process finishes, remove it ----- WANT TO USE TUPLES OR DICTIONARIES TO STORE THE PARENT_CONN END!!!!!!
-        finished_process = waitForAvailability(processes, max_processes):
-        logging.info(finished_process)
-        processes.remove(finished_process)
+        # wait for room, log whichever process finishes, remove it 
+        finished_process = waitForAvailability(processes, max_processes)
+        if finished_process != None:
+            logOutput(finished_process)
+            processes.remove(finished_process)
 
         torun = '%s %s' % (cmd_line, new_file)
-        logger=logging.getLogger('Executor-%d'%counter)
-        # awesome, but creates the files up front :( - pool.apply_async(executor, (torun,offset,value_index,new_file,counter,save_directory,0), callback=output_logging_callback)#logger))
-        process = Process(target=executor, args=(torun,offset,value_index,new_file,counter,save_directory))
-        logging.info(res)
+        parent_conn, child_conn = Pipe()
+        process = Process(target=executor, args=(torun,offset,value_index,new_file,counter,save_directory,child_conn))
+        processes.append({'process':process, 'parent_conn':parent_conn})
+        process.start()
 
     # clean up and wait
-    pool.close()
-    pool.join()
     logging.info("test finished")
     end_time = time() - start_time
     print 'total time =', end_time
