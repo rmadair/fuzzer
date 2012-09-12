@@ -34,6 +34,7 @@ class Executor():
 	def execute(self, q):
 		dbg = pydbg()
 		dbg.set_callback(EXCEPTION_ACCESS_VIOLATION, self.handle_av)
+		dbg.set_callback(0xC000001D, self.handle_av) # illegal instruction
 		dbg.set_callback(USER_CALLBACK_DEBUG_EVENT, self.timeout_callback)
 		dbg.load(q['command'], command_line=q['args'])
 		dbg.start_time = time()
