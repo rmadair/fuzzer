@@ -1,12 +1,17 @@
 from multiprocessing import Process, Queue
 from threading import Thread
+from optparse import OptionParser
 from shutil import copy
 from os import remove
 from time import sleep, time
-from sys import exit
+from sys import exit, argv
 
 from Executor import Executor
 from Mutator import Mutator
+
+# todo
+# - set signal handler to SIGINT, show status, give option to quit
+# - maybe save progress and continue later, or at least allow a run offset
 
 class Fuzzer():
 	def __init__(self, max_processes, logfile, save_directory):
@@ -79,6 +84,39 @@ class Fuzzer():
 				copy(obj['new_file'], self.save_directory)	
 			remove(obj['new_file'])
 
+def check_usage(args):
+    ''' Parse command line options - yes, these aren't really "options".... deal with it '''
+
+    parser = OptionParser()
+    parser.add_option('-p', action="store", dest="program_cmd_line", help='Program to launch, the full command line that will be executed', metavar="program")
+    parser.add_option('-f', action="store", dest="original_file", help='File to be mutated', metavar="file")
+    parser.add_option('-d', action="store", dest="temp_directory", help='Directory for temporary files to be created', metavar="temp_directory")
+    parser.add_option('-t', action="store", dest="mutation_type", help='Type of mutation ("byte", "word", "dword")', metavar="mutation_type")
+    parser.add_option('-l', action="store", dest="log_file", help='Log file', metavar="log")
+    parser.add_option('-s', action="store", dest="save_directory", help='Save-directory, for files to be saved that cause crashes', metavar="save_directory")
+    parser.add_option('-m', action="store", dest="max_processes", help='Max Processes (Default is 1)', type="int", default=1, metavar="max_processes")
+    parser.epilog = "Example:\n\n"
+    parser.epilog += './fuzzer.py -p "C:\Program Files\Blah\prog.exe" -a "some_arg" -a "%s" -f original_file.mp3 -d temp -t dword -l log.txt -s save -m 4'
+    options, args = parser.parse_args(args)
+
+    # make sure enough args are passed
+    if not all((options.program_cmd_line, options.original_file, options.temp_directory, options.mutation_type, options.log_file, options.save_directory)):
+        parser.error("Incorrect number of arguments - must specify program, original_file, temp_directory, mutation_type, log_file, save_directory")
+
+    return options
+
+
 if __name__ == '__main__':
-	fuzzer = Fuzzer(3, 'logfile.txt-%d'%time(), r'C:\Users\nomnom\utdcsg\fuzzing\save')	
-	fuzzer.start(r'"C:\Program Files (x86)\VideoLAN\VLC\vlc.exe"', r'C:\Users\nomnom\utdcsg\fuzzing\sample_3gp_files\sample.nuv', 5, r'C:\Users\nomnom\utdcsg\fuzzing\temp', 'dword')
+    # check args, get args
+    options = check_usage(argv)
+    program_cmd_line = options.program_cmd_line
+    original_file    = options.original_file
+    temp_directory   = options.temp_directory
+    mutation_type    = options.mutation_type
+    log_file         = options.log_file
+    save_directory   = options.save_directory
+    max_processes    = options.max_processes
+
+    # create the fuzzer, start it
+    fuzzer = Fuzzer(max_processes, log_file, save_directory)
+    fuzzer.start(program_cmd_line, original_file, 5, temp_directory, mutation_type)
