@@ -32,7 +32,14 @@
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
         <h2>Under Construction...</h2>
+	  <h3>Overview</h3>
+	  <p>This project is a Python, mutation based files fuzzer that uses PyDBG to monitor for signals of interest. </p>
 	  <h3>Architecture</h3>
+	  <p>The architecture is a multiprocessing fuzzer, following a producer/consumer model. For every mutation that the mutator applies
+	  to the original file, add a new job to the In_queue. One of the n processes will get the job from the queue, and using PyDBG, execute
+	  the application with the mutated file and monitor for any signals of interest. After the run finishes, or a timeout occurs, the process
+	  executing the job will put any output in the Out_queue.
+	  </p>
 	  <img src="https://raw.github.com/rmadair/fuzzer/gh-pages/images/architecture.png" />
 		<p>For now, just <a href="https://github.com/rmadair/fuzzer">view it on GitHub</a>.</p>
 
