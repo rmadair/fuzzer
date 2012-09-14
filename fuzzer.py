@@ -12,6 +12,7 @@ from Mutator import Mutator
 # todo
 # - set signal handler to SIGINT, show status, give option to quit
 # - maybe save progress and continue later, or at least allow a run offset
+# - add timeout to options
 
 class Fuzzer():
 	def __init__(self, max_processes, logfile, save_directory):
@@ -96,7 +97,7 @@ def check_usage(args):
     parser.add_option('-s', action="store", dest="save_directory", help='Save-directory, for files to be saved that cause crashes', metavar="save_directory")
     parser.add_option('-m', action="store", dest="max_processes", help='Max Processes (Default is 1)', type="int", default=1, metavar="max_processes")
     parser.epilog = "Example:\n\n"
-    parser.epilog += './fuzzer.py -p "C:\Program Files\Blah\prog.exe" -a "some_arg" -a "%s" -f original_file.mp3 -d temp -t dword -l log.txt -s save -m 4'
+    parser.epilog += './fuzzer.py -p "C:\Program Files\Blah\prog.exe" -f original_file.mp3 -d temp -t dword -l log.txt -s save -m 4'
     options, args = parser.parse_args(args)
 
     # make sure enough args are passed
