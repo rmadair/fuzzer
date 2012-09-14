@@ -8,8 +8,8 @@ class Executor():
 		self.timeout   = timeout
 		self.queue_in  = queue_in
 		self.queue_out = queue_out
+		self.obj       = None
 		self.enterLoop()
-		self.obj = None
 
 	def enterLoop(self):
 		while True:
