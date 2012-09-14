@@ -8,8 +8,6 @@ from sys import exit
 from Executor import Executor
 from Mutator import Mutator
 
-# need to "kill" the monitor thread...
-
 class Fuzzer():
 	def __init__(self, max_processes, logfile, save_directory):
 		self.q_to = Queue()
@@ -18,6 +16,7 @@ class Fuzzer():
 		self.max_processes = max_processes
 		self.save_directory = save_directory
 		self.mutator = None
+		self.monitor_thread = None
 
 		# open the logfile
 		try:
@@ -36,8 +35,8 @@ class Fuzzer():
 			process.start()
 
 		# create the thread to get consumer output
-		monitor_thread = Thread(target=self.monitor)
-		monitor_thread.start()
+		self.monitor_thread = Thread(target=self.monitor)
+		self.monitor_thread.start()
 
 		# create the mutator
 		mutator = Mutator(original_file, temp_directory, mutation_type)
@@ -54,25 +53,29 @@ class Fuzzer():
 		# kill the consumers
 		for i in range(self.max_processes):
 			self.q_to.put('STOP')
-		# clean up
 		for process in self.processes:
 			process.join()
+		# kill the monitor thread
+		self.q_from.put('STOP')
+		self.monitor_thread.join()
 		# close the log file
 		self.log.close()
 
 	def monitor(self):
 		while True:
-			# if no output, just wait and continue
-			if self.q_from.empty():
-				sleep(.1)
-				continue
-			
-			obj = self.q_from.get()
+			# wait for output
+			obj = self.q_from.get()	# this blocks
+
+			# poison pill
+			if obj == 'STOP':
+				break
+
 			self.log.write('executable = %s, offset=%d, value_index=%d, value_type=%s, args=%s\n--------------------------------------\n' % (
 				obj['command'], obj['offset'], obj['value_index'], obj['value_type'], obj['args']))
 			if obj['crash']:
 				print 'Crash!'
 				self.log.write(obj['output'])
+				# save good files
 				copy(obj['new_file'], self.save_directory)	
 			remove(obj['new_file'])
 
