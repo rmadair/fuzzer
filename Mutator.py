@@ -1,5 +1,6 @@
 import struct
 import os
+from sys import exit
 
 # todo
 #
@@ -93,7 +94,7 @@ class Mutator(ValueGenerator):
 
         # get the contents of the original file
         #try:
-        fopen = open(self.original_file, 'r')
+        fopen = open(self.original_file, 'rb')
         self.original_bytes = fopen.read()
         self.original_bytes_len = len(self.original_bytes)
         self.total_mutations    = self.original_bytes_len * len(self.values)
@@ -125,3 +126,8 @@ class Mutator(ValueGenerator):
                 #except:
                 #    raise Exception('[*] unable to open tmp file for mutation! %s '%mutated_file_name)
 
+    def print_statistics(self):
+        ''' print some generic output with statistic information '''
+        print '[*] File size                    :', self.original_bytes_len
+        print '[*] Number of possible mutations :', len(self.getValues())
+        print '[*] Total number of putations    :', self.total_mutations

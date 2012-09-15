@@ -3,7 +3,7 @@ from threading import Thread
 from optparse import OptionParser
 from shutil import copy
 from os import remove
-from time import sleep, time
+from time import sleep, ctime
 from sys import exit, argv
 
 from Executor import Executor
@@ -12,7 +12,7 @@ from Mutator import Mutator
 # todo
 # - set signal handler to SIGINT, show status, give option to quit
 # - maybe save progress and continue later, or at least allow a run offset
-# - add timeout to options
+# - add timeout to command line options
 
 class Fuzzer():
 	def __init__(self, max_processes, logfile, save_directory):
@@ -47,10 +47,21 @@ class Fuzzer():
 		# create the mutator
 		mutator = Mutator(original_file, temp_directory, mutation_type)
 
+		# print some useful information, and figure out some relative percentages
+		mutator.print_statistics()
+		ten_percent = mutator.total_mutations / 10
+		percent     = 0
+
 		for counter, (offset, value_index, value_type, new_file) in enumerate(mutator.createNext()):
 			while not self.q_to.empty():
 				sleep(.1)
 
+			# check if we hit a 10% mark
+			if counter % ten_percent == 0:
+				print '%02d%% - %s' % (percent, ctime())
+				percent += 10
+
+			# add the job to the queue
 			self.q_to.put({'command':command, 'args':'%s'%new_file, 'offset':offset, 'value_index':value_index, 'value_type':value_type, 'new_file':new_file})
 
 		self.stop()
@@ -68,6 +79,8 @@ class Fuzzer():
 		self.log.close()
 
 	def monitor(self):
+		counter = 0
+
 		while True:
 			# wait for output
 			obj = self.q_from.get()	# this blocks
@@ -76,14 +89,16 @@ class Fuzzer():
 			if obj == 'STOP':
 				break
 
-			self.log.write('executable = %s, offset=%d, value_index=%d, value_type=%s, args=%s\n--------------------------------------\n' % (
-				obj['command'], obj['offset'], obj['value_index'], obj['value_type'], obj['args']))
+			self.log.write('[%d] executable = %s, offset=%d, value_index=%d, value_type=%s, args=%s\n--------------------------------------\n' % (
+				counter, obj['command'], obj['offset'], obj['value_index'], obj['value_type'], obj['args']))
 			if obj['crash']:
 				print 'Crash!'
 				self.log.write(obj['output'])
 				# save good files
 				copy(obj['new_file'], self.save_directory)	
+
 			remove(obj['new_file'])
+			counter += 1
 
 def check_usage(args):
     ''' Parse command line options - yes, these aren't really "options".... deal with it '''
