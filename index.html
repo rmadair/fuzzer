@@ -40,8 +40,26 @@
 	  the application with the mutated file and monitor for any signals of interest. After the run finishes, or a timeout occurs, the process
 	  executing the job will put any output in the Out_queue.
 	  </p>
-	  <img src="https://raw.github.com/rmadair/fuzzer/gh-pages/images/architecture.png" />
-		<p>For now, just <a href="https://github.com/rmadair/fuzzer">view it on GitHub</a>.</p>
+	  <h3>Usage</h3>
+	  <p>
+C:\fuzzer>python fuzzer.py -h
+Usage: fuzzer.py [options]
+
+Options:
+  -h, --help         show this help message and exit
+  -p program         Program to launch, the full command line that will be
+                     executed
+  -f file            File to be mutated
+  -d temp_directory  Directory for temporary files to be created
+  -t mutation_type   Type of mutation ("byte", "word", "dword")
+  -l log             Log file
+  -s save_directory  Save-directory, for files to be saved that cause crashes
+  -m max_processes   Max Processes (Default is 1)
+
+Example:  ./fuzzer.py -p "C:\Program Files\Blah\prog.exe" -f original_file.mp3
+-d temp -t dword -l log.txt -s save -m 4
+	</p>
+	  
 
     </div>
 
