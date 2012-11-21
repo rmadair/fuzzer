@@ -97,7 +97,7 @@ class Fuzzer():
 				# save good files
 				copy(obj['new_file'], self.save_directory)	
 
-			remove(obj['new_file'])
+			remove("%s"%obj['new_file'])
 			counter += 1
 
 def check_usage(args):
