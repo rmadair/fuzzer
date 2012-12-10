@@ -45,7 +45,7 @@ class FuzzerClientProtocol(amp.AMP):
          .addCallback(self.executeNextMutation)
          .addErrback(stop))
 
-    # getting list o fmutations, and saving them
+    # getting list of mutations, and saving them
     def getMutationTypes(self):
         self.callRemote(commands.GetMutationTypes).addCallback(self.gotMutationTypes).addErrback(stop)
     def gotMutationTypes(self, response):

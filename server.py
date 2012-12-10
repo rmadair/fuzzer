@@ -8,6 +8,8 @@ import commands
 # for mutations
 from Mutator import MutationGenerator
 
+from sys import exit
+
 class FuzzerServerProtocol(amp.AMP):
 
 	@commands.CommandOne.responder
@@ -34,13 +36,27 @@ class FuzzerServerProtocol(amp.AMP):
 class FuzzerFactory(ServerFactory):
 	protocol = FuzzerServerProtocol
 
-	def startFactory(self):
-		print 'startFactory(...)'
-		self.offset = 0
+	def __init__(self, original_file):
+		print 'FuzzerFactory(...) started'
+		self.offset 			= 0
 		self.mutation_generator = MutationGenerator('byte')
+		self.contents 		    = None
+		self.contents_len		= None
+
+		# make sure we can read the original target file
+		try:
+			self.contents = open(original_file, 'rb').read()
+			self.contents_len = len(self.contents)
+		except:
+			print 'Unable to open "%s" and read the contents. Exiting!' % original_file
+			exit(1)
+
+	def getNextMutation(self):
+
+		#### MAKE THIS A GENERATOR THAT RETURNS THE NEXT MUTATION - tada :)
 
 def main():
-	factory = FuzzerFactory()
+	factory = FuzzerFactory(r'C:\users\nomnom\infosec\fuzzing\git\server-demo.py')
 	reactor.listenTCP(12345, factory)
 	reactor.run()
 
