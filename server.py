@@ -12,10 +12,13 @@ from sys import exit
 
 class FuzzerServerProtocol(amp.AMP):
 
-	@commands.CommandOne.responder
-	def commandOne(self):
+	@commands.GetNextMutation.responder
+	def getNextMutation(self):
 		print 'commandOne(...)'
-		return {'offset':self.factory.offset, 'value':42, 'stop':False}
+		ret = self.factory.getNextMutation()
+		print ret
+		return ret
+		#return {'offset':self.factory.offset, 'mutation_index':42, 'stop':False}
 
 	@commands.LogResults.responder
 	def logResults(self, results):
@@ -30,7 +33,8 @@ class FuzzerServerProtocol(amp.AMP):
 	@commands.GetMutationTypes.responder
 	def getMutationTypes(self):
 		print 'getMutationTypes(...)'
-		return {'mutation_types':[{'value':'\xde\xad\xbe\xef', 'offset':42, 'type':'string', 'size':1}, {'value':'\xde\xad\xbe\xef', 'offset':43, 'type':'string', 'size':1}]}
+		return {'mutation_types':self.factory.mutations}
+		#return {'mutation_types':[{'value':'\xde\xad\xbe\xef', 'offset':42, 'type':'string', 'size':1}, {'value':'\xde\xad\xbe\xef', 'offset':43, 'type':'string', 'size':1}]}
 
 
 class FuzzerFactory(ServerFactory):
@@ -38,22 +42,28 @@ class FuzzerFactory(ServerFactory):
 
 	def __init__(self, original_file):
 		print 'FuzzerFactory(...) started'
-		self.offset 			= 0
 		self.mutation_generator = MutationGenerator('byte')
+		self.mutations			= self.mutation_generator.getValues()
+		self.mutations_range	= range(len(self.mutations))
 		self.contents 		    = None
-		self.contents_len		= None
+		self.contents_range		= None
+		self.generator 			= self.createGenerator()
 
 		# make sure we can read the original target file
 		try:
 			self.contents = open(original_file, 'rb').read()
-			self.contents_len = len(self.contents)
+			self.contents_range = range(len(self.contents))
 		except:
 			print 'Unable to open "%s" and read the contents. Exiting!' % original_file
-			exit(1)
+			exit(1) 
+            
+	def createGenerator(self):
+		for offset in self.contents_range:
+			for mutation_index in self.mutations_range:
+				yield {'offset':offset, 'mutation_index':mutation_index, 'stop':False}
 
 	def getNextMutation(self):
-
-		#### MAKE THIS A GENERATOR THAT RETURNS THE NEXT MUTATION - tada :)
+		return self.generator.next()
 
 def main():
 	factory = FuzzerFactory(r'C:\users\nomnom\infosec\fuzzing\git\server-demo.py')

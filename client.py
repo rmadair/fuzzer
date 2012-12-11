@@ -41,7 +41,7 @@ class FuzzerClientProtocol(amp.AMP):
             print 'sending a message back to the server'
 
     def getNextMutation(self):
-        (self.callRemote(commands.CommandOne)
+        (self.callRemote(commands.GetNextMutation)
          .addCallback(self.executeNextMutation)
          .addErrback(stop))
 

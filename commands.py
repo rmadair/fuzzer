@@ -1,8 +1,8 @@
 from twisted.protocols import amp
 
-class CommandOne(amp.Command):
+class GetNextMutation(amp.Command):
 	arguments = []
-	response = [('offset', amp.Integer()), ('value', amp.Integer()), ('stop', amp.Boolean())]
+	response = [('offset', amp.Integer()), ('mutation_index', amp.Integer()), ('stop', amp.Boolean())]
 
 class LogResults(amp.Command):
 	arguments = [('results', amp.String())]
@@ -14,4 +14,4 @@ class GetOriginalFile(amp.Command):
 
 class GetMutationTypes(amp.Command):
 	arguments = []
-	response = [('mutation_types', amp.AmpList([ ('value',amp.String()), ('offset',amp.Integer()), ('type',amp.String()), ('size',amp.Integer()) ]))]
+	response = [('mutation_types', amp.AmpList([ ('value',amp.String()), ('type',amp.String()), ('size',amp.Integer()) ]))]

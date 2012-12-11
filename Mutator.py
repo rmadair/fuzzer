@@ -105,7 +105,12 @@ class MutationGenerator():
         # turn them into writeable bytes
         self.value_to_bytes(values, vtype=value_type)
         self.createWriteable(values)
+        self.createStrings(values)
         self.values = values
+
+    def createStrings(self, values):
+        for value_dict in values:
+            value_dict['value'] = ''.join(value_dict['value'])
 
     def value_to_bytes(self, values, vtype='dword'):
         '''Given a value as an int, return it in little endian bytes of length type.
