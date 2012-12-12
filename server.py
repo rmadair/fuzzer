@@ -8,6 +8,7 @@ import commands
 # for mutations
 from Mutator import MutationGenerator
 
+from os.path import split
 from sys import exit
 
 class FuzzerServerProtocol(amp.AMP):
@@ -28,7 +29,7 @@ class FuzzerServerProtocol(amp.AMP):
 	@commands.GetOriginalFile.responder
 	def getOriginalFile(self):
 		print 'getOringlaFile(...)'
-		return {'original_file':self.factory.contents}
+		return {'original_file':self.factory.contents, 'original_file_name':self.factory.file_name}
 
 	@commands.GetMutationTypes.responder
 	def getMutationTypes(self):
@@ -43,6 +44,7 @@ class FuzzerFactory(ServerFactory):
 		self.mutation_generator = MutationGenerator('byte')
 		self.mutations			= self.mutation_generator.getValues()
 		self.mutations_range	= range(len(self.mutations))
+		self.file_name          = split(original_file)[1]       # just the filename
 		self.contents 		    = None
 		self.contents_range		= None
 		self.generator 			= self.createGenerator()

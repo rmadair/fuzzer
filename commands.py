@@ -10,7 +10,7 @@ class LogResults(amp.Command):
 
 class GetOriginalFile(amp.Command):
 	arguments = []
-	response = [('original_file', amp.String())]
+	response = [('original_file', amp.String()), ('original_file_name', amp.String())]
 
 class GetMutationTypes(amp.Command):
 	arguments = []

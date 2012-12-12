@@ -1,5 +1,5 @@
 # for twisted
-from twisted.internet import reactor, endpoints, protocol
+from twisted.internet import reactor, endpoints, protocol, defer
 from twisted.internet.task import LoopingCall
 from twisted.protocols import amp
 import commands
@@ -12,8 +12,6 @@ import utils
 # for mutations and execution
 from Mutator import Mutator
 
-from time import sleep
-
 
 def stop(reason):
     ''' Generic function to stop the reactor  and print a message '''
@@ -23,34 +21,29 @@ def stop(reason):
 class FuzzerClientProtocol(amp.AMP):
 
     def __init__(self):
-        self.original_file 	    = None
+        self.original_file = None
         self.original_file_name = None
-        self.mutation_types     = None
-        self.mutator 	   	    = None
-        self.finished_startup   = False
+        self.mutation_types = None
+        self.mutator = None
 
     def connectionMade(self):
-        # get original file to work with
-        self.getOriginalFile()
+        setupDeferreds = [self.getOriginalFile(), self.getMutationTypes()]
+        defer.gatherResults(setupDeferreds).addCallback(self.finishSetup).addErrback(stop)
 
-        # get the list of mutations we will be working with
-        self.getMutationTypes()
-
-        # i want to block here before continuing
-
+    def finishSetup(self, ign):
         # we have all the pieces the mutator needs
-        self.mutator = Mutator(self.original_file, self.mutation_types, self.original_file_name, self.factory.tmp_directory)
+        self.mutator = Mutator(
+            self.original_file, self.mutation_types, self.original_file_name, self.factory.tmp_directory)
 
         # enter continuous loop
         self.lc = LoopingCall(self.getNextMutation)
         self.lc.start(0.1)
 
-
     def getNextMutation(self):
         ''' Ask the server for the next mutation '''
-        (self.callRemote(commands.GetNextMutation)
-         .addCallback(self.executeNextMutation)
-         .addErrback(stop))
+        return (self.callRemote(commands.GetNextMutation)
+                .addCallback(self.executeNextMutation)
+                .addErrback(stop))
 
     def executeNextMutation(self, mutation):
         print '- got mutation:', mutation 
@@ -66,19 +59,18 @@ class FuzzerClientProtocol(amp.AMP):
             print 'sending a message back to the server'
 
     # getting list of mutations, and saving them
+    @defer.inlineCallbacks
     def getMutationTypes(self):
-        self.callRemote(commands.GetMutationTypes).addCallback(self.gotMutationTypes).addErrback(stop)
-    def gotMutationTypes(self, response):
+        response = yield self.callRemote(commands.GetMutationTypes)
         print '[*] Got mutation types'
         self.mutation_types = response['mutation_types']
-        self.finished_startup = True        # signal that we are done getting all the required info to fuzz
 
     # getting original file, and saving it
+    @defer.inlineCallbacks
     def getOriginalFile(self):
-        self.callRemote(commands.GetOriginalFile).addCallback(self.gotOriginalFile).addErrback(stop)
-    def gotOriginalFile(self, response):
+        response = yield self.callRemote(commands.GetOriginalFile)
         print '[*] Got original_file,', response['original_file_name']
-        self.original_file      = response['original_file']
+        self.original_file = response['original_file']
         self.original_file_name = response['original_file_name']
 
 class FuzzerClientFactory(protocol.ClientFactory):

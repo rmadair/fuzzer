@@ -1,14 +1,10 @@
 import struct
-import os
 from sys import exit
+from os.path import splitext, join
 
 MAX8  = 0xff
 MAX16 = 0xffff
 MAX32 = 0xffffffff
-
-#values_8bit  = [0x00, 0x01, MAX8/2-16,  MAX8/2-1,  MAX8/2,  MAX8/2+1,  MAX8/2+16,  MAX8-16,  MAX8-1,  MAX8]
-#values_16bit = [0x00, 0x01, MAX16/2-16, MAX16/2-1, MAX16/2, MAX16/2+1, MAX16/2+16, MAX16-16, MAX16-1, MAX16]
-#values_32bit = [0x00, 0x01, MAX32/2-16, MAX32/2-1, MAX32/2, MAX32/2+1, MAX32/2+16, MAX32-16, MAX32-1, MAX32]
 
 values_8bit  = [{'value':0x00,       'type':'replace', 'size':1}, {'value':0x01,    'type':'replace', 'size':1}, {'value':MAX8/2-16,  'type':'replace', 'size':1}, 
                 {'value':MAX8/2-1,   'type':'replace', 'size':1}, {'value':MAX8/2,  'type':'replace', 'size':1}, {'value':MAX8/2+1,   'type':'replace', 'size':1}, 
@@ -27,42 +23,45 @@ values_strings = [{'value':list("B"*100),  'type':'insert', 'size':100}, \
                   {'value':list("%s"*10),  'type':'insert', 'size':10}, \
                   {'value':list("%s"*100), 'type':'insert', 'size':100}]
 
-
-
-
-    
-
 class Mutator():
 
-    def __init__(self, original_file, mutation_types):
+    def __init__(self, original_file, mutation_types, original_file_name, tmp_directory):
         self.original_file  = original_file		# original contents of file
         self.mutation_types = mutation_types	# list of possible mutations
+        self.tmp_directory  = tmp_directory
+        self.original_file_name = original_file_name
+        print 'o_f_n =', original_file_name
+        self.original_file_base = splitext(self.original_file_name) [0]
+        self.original_file_ext  = splitext(self.original_file_name) [1]
 
+    def createMutatedFileName(self, offset, mutation_index):
+        ''' create a file name that represents the current mutation, return it '''
+        fname = self.original_file_base + "-" + offset + "-" + mutation_index + self.original_file_ext
+        return fname
 
     def createMutatedFile(self, offset, mutation_index):
-		''' mutate the contents of the original file, at offset, with mutation at 
-		mutation_index, creating a new file. return the new file name '''
+        ''' mutate the contents of the original file, at offset, with mutation at 
+            mutation_index, creating a new file. return the new file name '''
 
-		new_bytes = list(self.original_file[:])
-		mutation  = self.mutation_types[mutation_index]
+        new_bytes = list(self.original_file[:])
+        mutation  = self.mutation_types[mutation_index]
 
-		if mutation['type'] == 'replace':
-			new_bytes[offset:offset+value['size']] = mutation['value']                 # if 'replace', then just substitute/replace the desired bytes
-		elif mutation['type'] == 'insert':
-			new_bytes = new_bytes[:offset] + mutation['value'] + new_bytes[offset:]    # if 'insert', stick them in, shifting the rest of the bytes down
-		else:
-			 raise Exception('[*] UNKNOWN mutation[\'type\'], %s' % mutation['type'])
+        if mutation['type'] == 'replace':
+            new_bytes[offset:offset+mutation['size']] = mutation['value']                 # if 'replace', then just substitute/replace the desired bytes
+        elif mutation['type'] == 'insert':
+            new_bytes = new_bytes[:offset] + mutation['value'] + new_bytes[offset:]    # if 'insert', stick them in, shifting the rest of the bytes down
+        else:
+             raise Exception('[*] UNKNOWN mutation[\'type\'], %s' % mutation['type'])
 
-		#try:
-		mutated_file_name = "%s-%d%s" % (self.original_file_base, self.mutated_file_num, self.original_file_ext)
-		mutated_file_name = os.path.join(self.tmp_directory, mutated_file_name)
-		self.mutated_file_num += 1
-		fopen = open(mutated_file_name, 'wb')
-		fopen.write( ''.join(new_bytes) ) 
-		fopen.close()
-		yield (offset, self.values.index(value), value['type'], mutated_file_name)
-		#except:
-		#    raise Exception('[*] unable to open tmp file for mutation! %s '%mutated_file_name)
+        # create the new file name, then it's full path
+        mutated_file_name = self.createMutatedFileName(offset, mutation_index)
+        mutated_file_name = join(self.tmp_directory, mutated_file_name)
+        # write the file
+        try:
+            with open(mutated_file_name, 'wb') as fopen:
+                fopen.write( ''.join(new_bytes) ) 
+        except Exception as e:
+            raise Exception('[*] unable to open tmp file for mutation! Error : %s' % e)
 
     def print_statistics(self):
         ''' print some generic output with statistic information '''
