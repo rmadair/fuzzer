@@ -14,7 +14,7 @@ class FuzzerServerProtocol(amp.AMP):
 
 	@commands.GetNextMutation.responder
 	def getNextMutation(self):
-		print 'commandOne(...)'
+		print 'getNextMutation(...)'
 		ret = self.factory.getNextMutation()
 		print ret
 		return ret
@@ -28,14 +28,12 @@ class FuzzerServerProtocol(amp.AMP):
 	@commands.GetOriginalFile.responder
 	def getOriginalFile(self):
 		print 'getOringlaFile(...)'
-		return {'original_file':'BBB\xab\x00\xcdAAA'}
+		return {'original_file':self.factory.contents}
 
 	@commands.GetMutationTypes.responder
 	def getMutationTypes(self):
 		print 'getMutationTypes(...)'
 		return {'mutation_types':self.factory.mutations}
-		#return {'mutation_types':[{'value':'\xde\xad\xbe\xef', 'offset':42, 'type':'string', 'size':1}, {'value':'\xde\xad\xbe\xef', 'offset':43, 'type':'string', 'size':1}]}
-
 
 class FuzzerFactory(ServerFactory):
 	protocol = FuzzerServerProtocol
@@ -66,7 +64,7 @@ class FuzzerFactory(ServerFactory):
 		return self.generator.next()
 
 def main():
-	factory = FuzzerFactory(r'C:\users\nomnom\infosec\fuzzing\git\server-demo.py')
+	factory = FuzzerFactory(r'C:\users\nomnom\infosec\fuzzing\git\testfile.txt')
 	reactor.listenTCP(12345, factory)
 	reactor.run()
 

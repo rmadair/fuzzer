@@ -33,45 +33,36 @@ values_strings = [{'value':list("B"*100),  'type':'insert', 'size':100}, \
     
 
 class Mutator():
-    ''' Mutator itterates over the contents of a given file, and using values from ValueGenerator, mutates
-        the given file, creating a new one. '''
 
-    def __init__(self, value_type):
-        ValueGenerator.__init__(self, value_type=value_type)
-        self.value_type         = value_type
+    def __init__(self, original_file, mutation_types):
+        self.original_file  = original_file		# original contents of file
+        self.mutation_types = mutation_types	# list of possible mutations
 
-        #try:
-        fopen = open(self.original_file, 'rb')
-        self.original_bytes = fopen.read()
-        self.original_bytes_len = len(self.original_bytes)
-        self.total_mutations    = self.original_bytes_len * len(self.values)
-        fopen.close()
-        #except:
-        #    raise Exception('[*] Mutator unable to open original_file %s' % self.original_file)
 
-    def createNext(self):
-        ''' Yield a tuple (offset, value, type, mutated_file_name) '''
+    def createMutatedFile(self, offset, mutation_index):
+		''' mutate the contents of the original file, at offset, with mutation at 
+		mutation_index, creating a new file. return the new file name '''
 
-        for offset in range(self.original_bytes_len):
-            for value in self.getValues():
-                new_bytes = list(self.original_bytes[:])
-                if value['type'] == 'replace':
-                    new_bytes[offset:offset+value['size']] = value['value']                 # if 'replace', then just substitute/replace the desired bytes
-                elif value['type'] == 'insert':
-                    new_bytes = new_bytes[:offset] + value['value'] + new_bytes[offset:]    # if 'insert', stick them in, shifting the rest of the bytes down
-                else:
-                     raise Exception('[*] UNKNOWN VALUE[\'TYPE\'], %s' % value['type'])
+		new_bytes = list(self.original_file[:])
+		mutation  = self.mutation_types[mutation_index]
 
-                #try:
-                mutated_file_name = "%s-%d%s" % (self.original_file_base, self.mutated_file_num, self.original_file_ext)
-                mutated_file_name = os.path.join(self.tmp_directory, mutated_file_name)
-                self.mutated_file_num += 1
-                fopen = open(mutated_file_name, 'wb')
-                fopen.write( ''.join(new_bytes) ) 
-                fopen.close()
-                yield (offset, self.values.index(value), value['type'], mutated_file_name)
-                #except:
-                #    raise Exception('[*] unable to open tmp file for mutation! %s '%mutated_file_name)
+		if mutation['type'] == 'replace':
+			new_bytes[offset:offset+value['size']] = mutation['value']                 # if 'replace', then just substitute/replace the desired bytes
+		elif mutation['type'] == 'insert':
+			new_bytes = new_bytes[:offset] + mutation['value'] + new_bytes[offset:]    # if 'insert', stick them in, shifting the rest of the bytes down
+		else:
+			 raise Exception('[*] UNKNOWN mutation[\'type\'], %s' % mutation['type'])
+
+		#try:
+		mutated_file_name = "%s-%d%s" % (self.original_file_base, self.mutated_file_num, self.original_file_ext)
+		mutated_file_name = os.path.join(self.tmp_directory, mutated_file_name)
+		self.mutated_file_num += 1
+		fopen = open(mutated_file_name, 'wb')
+		fopen.write( ''.join(new_bytes) ) 
+		fopen.close()
+		yield (offset, self.values.index(value), value['type'], mutated_file_name)
+		#except:
+		#    raise Exception('[*] unable to open tmp file for mutation! %s '%mutated_file_name)
 
     def print_statistics(self):
         ''' print some generic output with statistic information '''
