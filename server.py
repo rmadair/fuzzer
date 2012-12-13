@@ -19,7 +19,6 @@ class FuzzerServerProtocol(amp.AMP):
 		ret = self.factory.getNextMutation()
 		print ret
 		return ret
-		#return {'offset':self.factory.offset, 'mutation_index':42, 'stop':False}
 
 	@commands.LogResults.responder
 	def logResults(self, results):
@@ -36,15 +35,21 @@ class FuzzerServerProtocol(amp.AMP):
 		print 'getMutationTypes(...)'
 		return {'mutation_types':self.factory.mutations}
 
+	@commands.GetProgram.responder
+	def getProgram(self):
+		print 'getProgram(...)'
+		return {'program':self.factory.program}
+
 class FuzzerFactory(ServerFactory):
 	protocol = FuzzerServerProtocol
 
-	def __init__(self, original_file):
+	def __init__(self, program, original_file):
 		print 'FuzzerFactory(...) started'
 		self.mutation_generator = MutationGenerator('byte')
 		self.mutations			= self.mutation_generator.getValues()
 		self.mutations_range	= range(len(self.mutations))
 		self.file_name          = split(original_file)[1]       # just the filename
+		self.program			= program
 		self.contents 		    = None
 		self.contents_range		= None
 		self.generator 			= self.createGenerator()
@@ -63,10 +68,13 @@ class FuzzerFactory(ServerFactory):
 				yield {'offset':offset, 'mutation_index':mutation_index, 'stop':False}
 
 	def getNextMutation(self):
-		return self.generator.next()
+		try:
+			return self.generator.next()
+		except StopIteration:
+			return {'offset':0, 'mutation_index':0, 'stop':True}
 
 def main():
-	factory = FuzzerFactory(r'C:\users\nomnom\infosec\fuzzing\git\testfile.txt')
+	factory = FuzzerFactory(r'C:\windows\system32\calc.exe', r'C:\users\nomnom\infosec\fuzzing\git\testfile.txt')
 	reactor.listenTCP(12345, factory)
 	reactor.run()
 

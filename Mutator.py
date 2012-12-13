@@ -36,7 +36,7 @@ class Mutator():
 
     def createMutatedFileName(self, offset, mutation_index):
         ''' create a file name that represents the current mutation, return it '''
-        fname = self.original_file_base + "-" + offset + "-" + mutation_index + self.original_file_ext
+        fname = '%s-%d-%d%s' % (self.original_file_base, offset, mutation_index, self.original_file_ext)
         return fname
 
     def createMutatedFile(self, offset, mutation_index):
@@ -49,19 +49,22 @@ class Mutator():
         if mutation['type'] == 'replace':
             new_bytes[offset:offset+mutation['size']] = mutation['value']                 # if 'replace', then just substitute/replace the desired bytes
         elif mutation['type'] == 'insert':
-            new_bytes = new_bytes[:offset] + mutation['value'] + new_bytes[offset:]    # if 'insert', stick them in, shifting the rest of the bytes down
+            new_bytes = new_bytes[:offset] + list(mutation['value']) + new_bytes[offset:]    # if 'insert', stick them in, shifting the rest of the bytes down
         else:
              raise Exception('[*] UNKNOWN mutation[\'type\'], %s' % mutation['type'])
 
         # create the new file name, then it's full path
         mutated_file_name = self.createMutatedFileName(offset, mutation_index)
         mutated_file_name = join(self.tmp_directory, mutated_file_name)
+
         # write the file
         try:
             with open(mutated_file_name, 'wb') as fopen:
                 fopen.write( ''.join(new_bytes) ) 
         except Exception as e:
             raise Exception('[*] unable to open tmp file for mutation! Error : %s' % e)
+
+        return mutated_file_name
 
     def print_statistics(self):
         ''' print some generic output with statistic information '''
