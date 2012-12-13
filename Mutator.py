@@ -2,26 +2,7 @@ import struct
 from sys import exit
 from os.path import splitext, join
 
-MAX8  = 0xff
-MAX16 = 0xffff
-MAX32 = 0xffffffff
-
-values_8bit  = [{'value':0x00,       'type':'replace', 'size':1}, {'value':0x01,    'type':'replace', 'size':1}, {'value':MAX8/2-16,  'type':'replace', 'size':1}, 
-                {'value':MAX8/2-1,   'type':'replace', 'size':1}, {'value':MAX8/2,  'type':'replace', 'size':1}, {'value':MAX8/2+1,   'type':'replace', 'size':1}, 
-                {'value':MAX8/2+16,  'type':'replace', 'size':1}, {'value':MAX8-1,  'type':'replace', 'size':1}, {'value':MAX8,       'type':'replace', 'size':1} ]
-
-values_16bit  = [{'value':0x00,      'type':'replace', 'size':2}, {'value':0x01,    'type':'replace', 'size':2}, {'value':MAX16/2-16, 'type':'replace', 'size':2}, 
-                {'value':MAX16/2-1,  'type':'replace', 'size':2}, {'value':MAX16/2, 'type':'replace', 'size':2}, {'value':MAX16/2+1,  'type':'replace', 'size':2}, 
-                {'value':MAX16/2+16, 'type':'replace', 'size':2}, {'value':MAX16-1, 'type':'replace', 'size':2}, {'value':MAX16,      'type':'replace', 'size':2} ]
-
-values_32bit  = [{'value':0x00,       'type':'replace', 'size':4}, {'value':0x01,    'type':'replace', 'size':4}, {'value':MAX32/2-16, 'type':'replace', 'size':4}, 
-                {'value':MAX32/2-1,  'type':'replace', 'size':4}, {'value':MAX32/2, 'type':'replace', 'size':4}, {'value':MAX32/2+1,  'type':'replace', 'size':4}, 
-                {'value':MAX32/2+16, 'type':'replace', 'size':4}, {'value':MAX32-1, 'type':'replace', 'size':4}, {'value':MAX32,      'type':'replace', 'size':4} ]
-values_strings = [{'value':list("B"*100),  'type':'insert', 'size':100}, \
-                  {'value':list("B"*1000), 'type':'insert', 'size':1000}, \
-                  {'value':list("B"*10000),'type':'insert', 'size':10000}, \
-                  {'value':list("%s"*10),  'type':'insert', 'size':10}, \
-                  {'value':list("%s"*100), 'type':'insert', 'size':100}]
+import mutations
 
 class Mutator():
 
@@ -78,22 +59,18 @@ class MutationGenerator():
         self.generateValues(value_type, strings)
 
     def generateValues(self, value_type, strings):
-        global values_8bit
-        global values_16bit
-        global values_32bit
-        global values_string
         values = []
         if value_type == 'byte':
-            values.extend(values_8bit)
+            values.extend(mutations.values_8bit)
         elif value_type == 'word':
-            values.extend(values_16bit)
+            values.extend(mutations.values_16bit)
         elif value_type == 'dword':
-            values.extend(values_32bit)
+            values.extend(mutations.values_32bit)
         else:
             raise Exception('unknown value type passed to generateValues(...), %s' % value_type)
 
         if strings:
-            values.extend(values_strings)
+            values.extend(mutations.values_strings)
 
         # turn them into writeable bytes
         self.value_to_bytes(values, vtype=value_type)

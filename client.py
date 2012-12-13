@@ -1,95 +1,108 @@
 # for twisted
-from twisted.internet import reactor, endpoints, protocol
+from twisted.internet import reactor, endpoints, protocol, defer
 from twisted.internet.task import LoopingCall
 from twisted.protocols import amp
 import commands
 
-# for pydbg execution
-from pydbg import *
-from pydbg.defines import *
-import utils
-
 # for mutations and execution
+from Executor import Executor
 from Mutator import Mutator
 
-from time import sleep
-
+from os import remove
+from os.path import join, split
+from shutil import copy
 
 def stop(reason):
     ''' Generic function to stop the reactor  and print a message '''
     print 'Stopping :', reason
-    reactor.stop()
+    # try to stop the reactor, may or may not be running
+    try:
+        reactor.stop()
+    except:
+        pass
 
 class FuzzerClientProtocol(amp.AMP):
 
     def __init__(self):
-        self.original_file 	    = None
+        self.executor = Executor()
+        self.original_file = None
         self.original_file_name = None
-        self.mutation_types     = None
-        self.mutator 	   	    = None
-        self.finished_startup   = False
+        self.mutation_types = None
+        self.program = None
+        self.mutator = None
 
     def connectionMade(self):
-        # get original file to work with
-        self.getOriginalFile()
+        setupDeferreds = [self.getOriginalFile(), self.getProgram(), self.getMutationTypes()]
+        defer.gatherResults(setupDeferreds).addCallback(self.finishSetup).addErrback(stop)
 
-        # get the list of mutations we will be working with
-        self.getMutationTypes()
-
-        # i want to block here before continuing
-
+    def finishSetup(self, ign):
         # we have all the pieces the mutator needs
-        self.mutator = Mutator(self.original_file, self.mutation_types, self.original_file_name, self.factory.tmp_directory)
+        self.mutator = Mutator(
+            self.original_file, self.mutation_types, self.original_file_name, self.factory.tmp_directory)
 
         # enter continuous loop
         self.lc = LoopingCall(self.getNextMutation)
         self.lc.start(0.1)
 
-
     def getNextMutation(self):
         ''' Ask the server for the next mutation '''
-        (self.callRemote(commands.GetNextMutation)
-         .addCallback(self.executeNextMutation)
-         .addErrback(stop))
+        return (self.callRemote(commands.GetNextMutation) # return deferred
+                .addCallback(self.executeNextMutation)
+                .addErrback(stop))
 
     def executeNextMutation(self, mutation):
-        print '- got mutation:', mutation 
-        if mutation['stop']:
-            stop("Server said to stop")
+		print '- got mutation:', mutation 
+		if mutation['stop']:
+			stop("Server said to stop")
+			return False
 
 		# create the mutated file
-		#self.mutator.createMutatedFile(
-        # ...
-        # faking a message to be logged back at the server side
-        if mutation['offset'] % 10 == 0:
-            self.callRemote( commands.LogResults, results="logging a message on mutation %(offset)d" % mutation)
-            print 'sending a message back to the server'
+		new_file_name = self.mutator.createMutatedFile(mutation['offset'], mutation['mutation_index'])
 
-    # getting list of mutations, and saving them
-    def getMutationTypes(self):
-        self.callRemote(commands.GetMutationTypes).addCallback(self.gotMutationTypes).addErrback(stop)
-    def gotMutationTypes(self, response):
-        print '[*] Got mutation types'
-        self.mutation_types = response['mutation_types']
-        self.finished_startup = True        # signal that we are done getting all the required info to fuzz
+		# execute it
+		print 'new_file_name =', new_file_name
+		output = self.executor.execute(self.program, new_file_name)
+		if output or  mutation['offset'] == 0 and mutation['mutation_index'] == 4:
+			print 'got output, sending a message back to the server'
+			self.callRemote( commands.LogResults, results="Logging a message. Offset = %d, Mutation_Index = %d.\n%s" % 
+				(mutation['offset'], mutation['mutation_index'], output))
+			# copy the file
+			copy("%s"%new_file_name, "%s"%join(self.factory.save_directory, split(new_file_name)[-1]))
+		# remove the file
+		remove("%s"%new_file_name)
 
     # getting original file, and saving it
+    @defer.inlineCallbacks
     def getOriginalFile(self):
-        self.callRemote(commands.GetOriginalFile).addCallback(self.gotOriginalFile).addErrback(stop)
-    def gotOriginalFile(self, response):
+        response = yield self.callRemote(commands.GetOriginalFile)
         print '[*] Got original_file,', response['original_file_name']
-        self.original_file      = response['original_file']
+        self.original_file = response['original_file']
         self.original_file_name = response['original_file_name']
+
+    # getting list of mutations, and saving them
+    @defer.inlineCallbacks
+    def getMutationTypes(self):
+		response = yield self.callRemote(commands.GetMutationTypes)
+		print '[*] Got mutation types'
+		self.mutation_types = response['mutation_types']
+
+    # getting program to be executed, and saving it
+    @defer.inlineCallbacks
+    def getProgram(self):
+        response = yield self.callRemote(commands.GetProgram)
+        print '[*] Got program :', response['program']
+        self.program = response['program']
 
 class FuzzerClientFactory(protocol.ClientFactory):
     protocol = FuzzerClientProtocol
 
-    def __init__(self, tmp_directory):
-        self.tmp_directory = tmp_directory
+    def __init__(self, tmp_directory, save_directory):
+		self.tmp_directory  = tmp_directory
+		self.save_directory = save_directory
         
 def main():
     (endpoints.TCP4ClientEndpoint(reactor, '127.0.0.1', 12345)
-     .connect(FuzzerClientFactory(r'C:\users\nomnom\infosec\fuzzing\git\temp\testing'))
+     .connect(FuzzerClientFactory(r'C:\users\nomnom\infosec\fuzzing\git\temp\testing', r'C:\users\nomnom\infosec\fuzzing\git\temp\save'))
      .addErrback(stop))
     reactor.run()
 
