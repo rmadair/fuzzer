@@ -51,40 +51,40 @@ class FuzzerClientProtocol(amp.AMP):
                 .addErrback(stop))
 
     def executeNextMutation(self, mutation):
-		print '- got mutation:', mutation 
-		if mutation['stop']:
-			stop("Server said to stop")
-			return False
+        if mutation['stop']:
+            stop("Server said to stop")
+            return False
 
-		# create the mutated file
-		new_file_name = self.mutator.createMutatedFile(mutation['offset'], mutation['mutation_index'])
+        # create the mutated file
+        new_file_name = self.mutator.createMutatedFile(mutation['offset'], mutation['mutation_index'])
 
-		# execute it
-		print 'new_file_name =', new_file_name
-		output = self.executor.execute(self.program, new_file_name)
-		if output or  mutation['offset'] == 0 and mutation['mutation_index'] == 4:
-			print 'got output, sending a message back to the server'
-			self.callRemote( commands.LogResults, results="Logging a message. Offset = %d, Mutation_Index = %d.\n%s" % 
-				(mutation['offset'], mutation['mutation_index'], output))
-			# copy the file
-			copy("%s"%new_file_name, "%s"%join(self.factory.save_directory, split(new_file_name)[-1]))
-		# remove the file
-		remove("%s"%new_file_name)
+        # execute it
+        print '(%d,%d)' % (mutation['offset'], mutation['mutation_index']),
+        output = self.executor.execute(self.program, new_file_name)
+        if output:
+            print 'Got output, Offset = %d, Mutation_Index = %d, File = %s' (mutation['offset'], mutation['mutation_index'], new_file_name)
+            self.callRemote( commands.LogResults, results="Logging a message. Offset = %d, Mutation_Index = %d, File = %s.\n%s" % 
+                (mutation['offset'], mutation['mutation_index'], new_file_name, output))
+            # copy the file - it caused a crash
+            copy("%s"%new_file_name, "%s"%join(self.factory.save_directory, split(new_file_name)[-1]))
+
+        # remove the file
+        remove("%s"%new_file_name)
 
     # getting original file, and saving it
     @defer.inlineCallbacks
     def getOriginalFile(self):
         response = yield self.callRemote(commands.GetOriginalFile)
-        print '[*] Got original_file,', response['original_file_name']
+        print '[*] Got original_file :', response['original_file_name']
         self.original_file = response['original_file']
         self.original_file_name = response['original_file_name']
 
     # getting list of mutations, and saving them
     @defer.inlineCallbacks
     def getMutationTypes(self):
-		response = yield self.callRemote(commands.GetMutationTypes)
-		print '[*] Got mutation types'
-		self.mutation_types = response['mutation_types']
+        response = yield self.callRemote(commands.GetMutationTypes)
+        print '[*] Got mutation types'
+        self.mutation_types = response['mutation_types']
 
     # getting program to be executed, and saving it
     @defer.inlineCallbacks
@@ -97,8 +97,8 @@ class FuzzerClientFactory(protocol.ClientFactory):
     protocol = FuzzerClientProtocol
 
     def __init__(self, tmp_directory, save_directory):
-		self.tmp_directory  = tmp_directory
-		self.save_directory = save_directory
+        self.tmp_directory  = tmp_directory
+        self.save_directory = save_directory
         
 def main():
     (endpoints.TCP4ClientEndpoint(reactor, '127.0.0.1', 12345)

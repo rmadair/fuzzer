@@ -11,7 +11,6 @@ class Mutator():
         self.mutation_types = mutation_types	# list of possible mutations
         self.tmp_directory  = tmp_directory
         self.original_file_name = original_file_name
-        print 'o_f_n =', original_file_name
         self.original_file_base = splitext(self.original_file_name) [0]
         self.original_file_ext  = splitext(self.original_file_name) [1]
 
@@ -46,12 +45,6 @@ class Mutator():
             raise Exception('[*] unable to open tmp file for mutation! Error : %s' % e)
 
         return mutated_file_name
-
-    def print_statistics(self):
-        ''' print some generic output with statistic information '''
-        print '[*] File size                    :', self.original_bytes_len
-        print '[*] Number of possible mutations :', len(self.getValues())
-        print '[*] Total number of putations    :', self.total_mutations
 
 class MutationGenerator():
 

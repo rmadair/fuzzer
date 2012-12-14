@@ -10,7 +10,6 @@ class Executor():
 
 	def execute(self, command, args):
 		self.output = None
-		print 'starting execution'
 		dbg = pydbg()
 		dbg.set_callback(EXCEPTION_ACCESS_VIOLATION, self.handle_av)
 		dbg.set_callback(0xC000001D, self.handle_av) # illegal instruction
@@ -19,7 +18,6 @@ class Executor():
 		dbg.start_time = time()
 		dbg.run()
 
-		print 'finished execution'
 		return self.output
 
 	def timeout_callback(self, dbg):
