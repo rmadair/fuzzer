@@ -62,9 +62,8 @@ class FuzzerClientProtocol(amp.AMP):
         print '(%d,%d)' % (mutation['offset'], mutation['mutation_index']),
         output = self.executor.execute(self.program, new_file_name)
         if output:
-            print 'Got output, Offset = %d, Mutation_Index = %d, File = %s' (mutation['offset'], mutation['mutation_index'], new_file_name)
-            self.callRemote( commands.LogResults, results="Logging a message. Offset = %d, Mutation_Index = %d, File = %s.\n%s" % 
-                (mutation['offset'], mutation['mutation_index'], new_file_name, output))
+            print 'Got output, Offset = %d, Mutation_Index = %d, File = %s' % (mutation['offset'], mutation['mutation_index'], new_file_name)
+            self.callRemote( commands.LogResults, mutation_index=mutation['mutation_index'], offset=mutation['offset'], output=output, filename=new_file_name )
             # copy the file - it caused a crash
             copy("%s"%new_file_name, "%s"%join(self.factory.save_directory, split(new_file_name)[-1]))
 

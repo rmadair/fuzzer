@@ -19,13 +19,14 @@ class FuzzerServerProtocol(amp.AMP):
     def getNextMutation(self):
         #print 'getNextMutation(...)'
         ret = self.factory.getNextMutation()
-        self.factory.mutations_executed += 1
         return ret
 
     @commands.LogResults.responder
-    def logResults(self, results):
-        print 'logResults:\n%s' % results 
-        self.factory.log_file.write(results)
+    def logResults(self, mutation_index, offset, output, filename):
+        print 'Got a crash!'
+        self.factory.log_file.write('Offset: %d, Mutation_Index: %d, Filename: %s, Output:\n%s'%
+                (offset, mutation_index, filename, output))
+        self.factory.crashes.append({'mutation_index':mutation_index, 'offset':offset, 'output':output, 'filename':filename})
         return {}
 
     @commands.GetOriginalFile.responder
@@ -47,7 +48,7 @@ class FuzzerServerProtocol(amp.AMP):
         ''' add new clients to the list '''
         self.factory.clients.append(self.transport.getPeer())
 
-    def connectionLost(self):
+    def connectionLost(self, traceback):
         ''' remove clients from the list '''
         self.factory.clients.remove(self.transport.getPeer())
 
@@ -67,6 +68,7 @@ class FuzzerFactory(ServerFactory):
         self.contents_range     = None
         self.generator          = self.createGenerator()
         self.clients            = []                            # list of clients
+        self.crashes            = []                            # list of crashes
         self.mutations_executed = 0                             # number of mutations executed so far
 
         # make sure we can read the original target file
@@ -93,7 +95,9 @@ class FuzzerFactory(ServerFactory):
 
     def getNextMutation(self):
         try:
-            return self.generator.next()
+            n = self.generator.next()
+            self.mutations_executed += 1
+            return n
         except StopIteration:
             # no more mutations, close the logfile
             if not self.log_file.closed:
@@ -106,15 +110,23 @@ class FuzzerFactory(ServerFactory):
 
         print ''
         if mutations:
+            total_mutations = len(self.contents) * len(self.mutations) 
             print 'Mutations:'
             print '  - File size                    :', len(self.contents)
             print '  - Number of possible mutations :', len(self.mutations)
-            print '  - Total number of mutations    :', len(self.contents) * len(self.mutations)
-            print '  - Total executed so far        :', self.mutations_executed
+            print '  - Total number of mutations    :', total_mutations
+            print '  - Total executed so far        : %d (%d%%)' % (self.mutations_executed, float(self.mutations_executed)/total_mutations*100)
         if clients:
             print 'Clients:'
             for client in self.clients:
                 print '  - %s:%d' % (client.host, client.port)
+        if crashes:
+            print 'Crashes:'
+            for crash in self.crashes:
+                print '  - Offset         :',   crash['offset']
+                print '  - Mutation Index :',   crash['mutation_index']
+                print '  - Filename       :',   crash['filename']
+                print '  - Output         :\n', crash['output']
 
     def menu(self):
         while True:
@@ -141,7 +153,8 @@ def quit(message=None):
     exit(1)
 
 def main():
-    factory = FuzzerFactory(r'C:\windows\system32\calc.exe', r'C:\users\nomnom\infosec\fuzzing\git\testfile.txt', r'C:\users\nomnom\infosec\fuzzing\git\temp\logs\logfile.txt')
+    #factory = FuzzerFactory(r'C:\windows\system32\calc.exe', r'C:\users\nomnom\infosec\fuzzing\git\testfile.txt', r'C:\users\nomnom\infosec\fuzzing\git\temp\logs\logfile.txt')
+    factory = FuzzerFactory(r'a.exe', r'C:\users\nomnom\infosec\fuzzing\git\testfile.txt', r'C:\users\nomnom\infosec\fuzzing\git\temp\logs\logfile.txt')
     reactor.listenTCP(12345, factory)
     reactor.run()
 
