@@ -42,7 +42,7 @@ class FuzzerClientProtocol(amp.AMP):
 
         # enter continuous loop
         self.lc = LoopingCall(self.getNextMutation)
-        self.lc.start(0.1)
+        self.lc.start(0)
 
     def getNextMutation(self):
         ''' Ask the server for the next mutation '''
@@ -70,24 +70,24 @@ class FuzzerClientProtocol(amp.AMP):
         # remove the file
         remove("%s"%new_file_name)
 
-    # getting original file, and saving it
     @defer.inlineCallbacks
     def getOriginalFile(self):
+        ''' get original file and file name'''
         response = yield self.callRemote(commands.GetOriginalFile)
         print '[*] Got original_file :', response['original_file_name']
         self.original_file = response['original_file']
         self.original_file_name = response['original_file_name']
 
-    # getting list of mutations, and saving them
     @defer.inlineCallbacks
     def getMutationTypes(self):
+        ''' get list of mutations that will be used '''
         response = yield self.callRemote(commands.GetMutationTypes)
         print '[*] Got mutation types'
         self.mutation_types = response['mutation_types']
 
-    # getting program to be executed, and saving it
     @defer.inlineCallbacks
     def getProgram(self):
+        ''' get target program that will be executed '''
         response = yield self.callRemote(commands.GetProgram)
         print '[*] Got program :', response['program']
         self.program = response['program']

@@ -48,7 +48,7 @@ class Mutator():
 
 class MutationGenerator():
 
-    def __init__(self, value_type, strings=True):
+    def __init__(self, value_type, strings=False):
         self.generateValues(value_type, strings)
 
     def generateValues(self, value_type, strings):

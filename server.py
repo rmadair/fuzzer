@@ -17,31 +17,30 @@ class FuzzerServerProtocol(amp.AMP):
 
     @commands.GetNextMutation.responder
     def getNextMutation(self):
-        #print 'getNextMutation(...)'
         ret = self.factory.getNextMutation()
         return ret
 
     @commands.LogResults.responder
     def logResults(self, mutation_index, offset, output, filename):
         print 'Got a crash!'
+        # log the crash
         self.factory.log_file.write('Offset: %d, Mutation_Index: %d, Filename: %s, Output:\n%s'%
                 (offset, mutation_index, filename, output))
+        self.factory.log_file.flush()
+        # add it to the servers list
         self.factory.crashes.append({'mutation_index':mutation_index, 'offset':offset, 'output':output, 'filename':filename})
         return {}
 
     @commands.GetOriginalFile.responder
     def getOriginalFile(self):
-        #print 'getOringlaFile(...)'
-        return {'original_file':self.factory.contents, 'original_file_name':self.factory.file_name}
+        return {'original_file_name':self.factory.file_name, 'original_file':self.factory.contents}
 
     @commands.GetMutationTypes.responder
     def getMutationTypes(self):
-        #print 'getMutationTypes(...)'
         return {'mutation_types':self.factory.mutations}
 
     @commands.GetProgram.responder
     def getProgram(self):
-        #print 'getProgram(...)'
         return {'program':self.factory.program}
 
     def connectionMade(self):
@@ -57,7 +56,7 @@ class FuzzerFactory(ServerFactory):
 
     def __init__(self, program, original_file, log_file_name):
         print 'FuzzerFactory(...) started'
-        self.mutation_generator = MutationGenerator('byte')
+        self.mutation_generator = MutationGenerator('dword')
         self.mutations          = self.mutation_generator.getValues()
         self.mutations_range    = range(len(self.mutations))
         self.file_name          = split(original_file)[1]       # just the filename
@@ -153,8 +152,9 @@ def quit(message=None):
     exit(1)
 
 def main():
-    #factory = FuzzerFactory(r'C:\windows\system32\calc.exe', r'C:\users\nomnom\infosec\fuzzing\git\testfile.txt', r'C:\users\nomnom\infosec\fuzzing\git\temp\logs\logfile.txt')
-    factory = FuzzerFactory(r'a.exe', r'C:\users\nomnom\infosec\fuzzing\git\testfile.txt', r'C:\users\nomnom\infosec\fuzzing\git\temp\logs\logfile.txt')
+    factory = FuzzerFactory(r'C:\Program Files (x86)\Foxit Software\Foxit Reader\Foxit Reader.exe', 
+                            r'C:\users\nomnom\infosec\fuzzing\git\temp\original2.pdf', r'C:\users\nomnom\infosec\fuzzing\git\temp\logs\foxit-logfile-10.txt')
+    #factory = FuzzerFactory(r'a.exe', r'C:\users\nomnom\infosec\fuzzing\git\testfile.txt', r'C:\users\nomnom\infosec\fuzzing\git\temp\logs\logfile.txt')
     reactor.listenTCP(12345, factory)
     reactor.run()
 

@@ -1,4 +1,5 @@
 from twisted.protocols import amp
+from BigStringVoodoo import *
 
 class GetNextMutation(amp.Command):
     arguments = []
@@ -10,7 +11,7 @@ class LogResults(amp.Command):
 
 class GetOriginalFile(amp.Command):
     arguments = []
-    response = [('original_file', amp.String()), ('original_file_name', amp.String())]
+    response = [('original_file_name', amp.String()), ('original_file', BigString())]
 
 class GetProgram(amp.Command):
     arguments = []
@@ -19,3 +20,4 @@ class GetProgram(amp.Command):
 class GetMutationTypes(amp.Command):
     arguments = []
     response = [('mutation_types', amp.AmpList([ ('value',amp.String()), ('type',amp.String()), ('size',amp.Integer()) ]))]
+
