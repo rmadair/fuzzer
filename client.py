@@ -10,7 +10,9 @@ from Mutator import Mutator
 
 from os import remove
 from os.path import join, split
+from optparse import OptionParser
 from shutil import copy
+from sys import argv
 
 def stop(reason):
     ''' Generic function to stop the reactor  and print a message '''
@@ -98,12 +100,30 @@ class FuzzerClientFactory(protocol.ClientFactory):
     def __init__(self, tmp_directory, save_directory):
         self.tmp_directory  = tmp_directory
         self.save_directory = save_directory
+
+def check_usage(args):
+    ''' Parse command line options - yes, these aren't really "options".... deal with it '''
+
+    parser = OptionParser()
+    parser.add_option('-s', action="store", dest="host", help='Server to connect to', metavar="host")
+    parser.add_option('-p', action="store", dest="port", help='Port to connect on', type='int', metavar="port")
+    parser.add_option('-t', action="store", dest="temp_directory", help='Temporary directory for files to be created', metavar="temp_directory")
+    parser.add_option('-g', action="store", dest="save_directory", help='Save-directory, for files to be saved that cause crashes', metavar="save_directory")
+    parser.epilog = "Example:\n\n"
+    parser.epilog += './client.py -s 127.0.0.1 -p 12345 -t temp -s save'
+    options, args = parser.parse_args(args)
+
+    # make sure enough args are passed
+    if not all((options.temp_directory, options.save_directory, options.port, options.host)):
+        parser.error("Incorrect number of arguments - must specify temp_directory, save_directory, host, port")
+
+    return options
         
-def main():
-    (endpoints.TCP4ClientEndpoint(reactor, '127.0.0.1', 12345)
-     .connect(FuzzerClientFactory(r'C:\users\nomnom\infosec\fuzzing\git\temp\testing', r'C:\users\nomnom\infosec\fuzzing\git\temp\save'))
+if __name__ == '__main__':
+    options = check_usage(argv)
+    (endpoints.TCP4ClientEndpoint(reactor, options.host, options.port)
+     .connect(FuzzerClientFactory(options.temp_directory, options.save_directory))
      .addErrback(stop))
     reactor.run()
 
-main()
 

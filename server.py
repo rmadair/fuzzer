@@ -8,8 +8,9 @@ import commands
 # for mutations
 from Mutator import MutationGenerator
 
+from optparse import OptionParser
 from os.path import split
-from sys import exit
+from sys import argv, exit
 from threading import Thread
 from time import sleep, ctime
 
@@ -54,9 +55,9 @@ class FuzzerServerProtocol(amp.AMP):
 class FuzzerFactory(ServerFactory):
     protocol = FuzzerServerProtocol
 
-    def __init__(self, program, original_file, log_file_name):
+    def __init__(self, program, original_file, log_file_name, mutation_type):
         print 'FuzzerFactory(...) started'
-        self.mutation_generator = MutationGenerator('dword')
+        self.mutation_generator = MutationGenerator(mutation_type)
         self.mutations          = self.mutation_generator.getValues()
         self.mutations_range    = range(len(self.mutations))
         self.file_name          = split(original_file)[1]       # just the filename
@@ -151,13 +152,28 @@ def quit(message=None):
     print 'Exiting!'
     exit(1)
 
-def main():
-    factory = FuzzerFactory(r'C:\Program Files (x86)\Foxit Software\Foxit Reader\Foxit Reader.exe', 
-                            r'C:\users\nomnom\infosec\fuzzing\git\temp\original2.pdf', r'C:\users\nomnom\infosec\fuzzing\git\temp\logs\foxit-logfile-10.txt')
-    #factory = FuzzerFactory(r'a.exe', r'C:\users\nomnom\infosec\fuzzing\git\testfile.txt', r'C:\users\nomnom\infosec\fuzzing\git\temp\logs\logfile.txt')
-    reactor.listenTCP(12345, factory)
-    reactor.run()
+def check_usage(args):
+    ''' Parse command line - they're not really optional, shhh'''
+
+    parser = OptionParser()
+    parser.add_option('-e', action="store", dest="program_cmd_line", help='Executable program to launch, the full command line that will be executed', metavar="program")
+    parser.add_option('-f', action="store", dest="original_file", help='File to be mutated', metavar="file")
+    parser.add_option('-t', action="store", dest="mutation_type", help='Type of mutation ("byte", "word", "dword")', metavar="mutation_type")
+    parser.add_option('-l', action="store", dest="log_file", help='Log file', metavar="log")
+    parser.add_option('-p', action="store", dest="port", help='Port to listen on', type='int', metavar="port")
+    parser.epilog = "Example:\n\n"
+    parser.epilog += './server.py -e "C:\Program Files\Blah\prog.exe" -f original_file.mp3 -t dword -l log.txt -p 12345'
+    options, args = parser.parse_args(args)
+
+    # make sure enough args are passed
+    if not all((options.program_cmd_line, options.original_file, options.mutation_type, options.log_file, options.port)):
+        parser.error("Incorrect number of arguments - must specify program, original_file, mutation_type, log_file, port")
+
+    return options
 
 if __name__ == '__main__':
-    main()
+    options = check_usage(argv)
+    factory = FuzzerFactory(options.program_cmd_line, options.original_file, options.log_file, options.mutation_type)
+    reactor.listenTCP(options.port, factory)
+    reactor.run()
 
