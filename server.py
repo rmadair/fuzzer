@@ -70,6 +70,7 @@ class FuzzerFactory(ServerFactory):
         self.clients            = []                            # list of clients
         self.crashes            = []                            # list of crashes
         self.mutations_executed = 0                             # number of mutations executed so far
+        self.paused             = False
 
         # make sure we can read the original target file
         try:
@@ -91,9 +92,11 @@ class FuzzerFactory(ServerFactory):
     def createGenerator(self):
         for offset in self.contents_range:
             for mutation_index in self.mutations_range:
-                yield {'offset':offset, 'mutation_index':mutation_index, 'stop':False}
+                yield {'offset':offset, 'mutation_index':mutation_index, 'stop':False, 'pause':False}
 
     def getNextMutation(self):
+        if self.paused:
+            return {'offset':0, 'mutation_index':0, 'stop':False, 'pause':True}
         try:
             n = self.generator.next()
             self.mutations_executed += 1
@@ -103,7 +106,7 @@ class FuzzerFactory(ServerFactory):
             if not self.log_file.closed:
                 self.log_file.close()
             # tell any clients to 'stop'
-            return {'offset':0, 'mutation_index':0, 'stop':True}
+            return {'offset':0, 'mutation_index':0, 'stop':True, 'pause':False}
 
     def printStatistics(self, mutations=False, clients=False, crashes=False):
         ''' print some statistics information '''
@@ -130,21 +133,25 @@ class FuzzerFactory(ServerFactory):
 
     def menu(self):
         while True:
-            print '\n' 
+            print '\n'
+            if self.paused: print '---- PAUSED ----'
             print 'Menu :'
             print '1. Show clients'
             print '2. Show crashes'
             print '3. Mutations'
             print '4. Show all'
-            selection = raw_input('Enter Selection : ')
-            if selection.strip() == '1':
+            print '5. Pause/Resume'
+            selection = raw_input('Enter Selection : ').rstrip()
+            if selection == '1':
                 self.printStatistics(clients=True)
-            if selection.strip() == '2':
+            if selection == '2':
                 self.printStatistics(crashes=True)
-            if selection.strip() == '3':
+            if selection == '3':
                 self.printStatistics(mutations=True)
-            if selection.strip() == '4':
+            if selection == '4':
                 self.printStatistics(clients=True, crashes=True, mutations=True)
+            if selection == '5':
+                self.paused = False if self.paused else True
 
 def quit(message=None):
     if message:

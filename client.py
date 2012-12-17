@@ -13,6 +13,7 @@ from os.path import join, split
 from optparse import OptionParser
 from shutil import copy
 from sys import argv
+from time import sleep
 
 def stop(reason):
     ''' Generic function to stop the reactor  and print a message '''
@@ -56,6 +57,11 @@ class FuzzerClientProtocol(amp.AMP):
         if mutation['stop']:
             stop("Server said to stop")
             return False
+
+        if mutation['pause']:
+            print 'Sever said to pause - sleeping for 60 seconds'
+            sleep(60)
+            return True
 
         # create the mutated file
         new_file_name = self.mutator.createMutatedFile(mutation['offset'], mutation['mutation_index'])

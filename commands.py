@@ -3,7 +3,7 @@ from BigStringVoodoo import *
 
 class GetNextMutation(amp.Command):
     arguments = []
-    response = [('offset', amp.Integer()), ('mutation_index', amp.Integer()), ('stop', amp.Boolean())]
+    response = [('offset', amp.Integer()), ('mutation_index', amp.Integer()), ('stop', amp.Boolean()), ('pause', amp.Boolean())]
 
 class LogResults(amp.Command):
     arguments = [('mutation_index',amp.Integer()), ('offset',amp.Integer()), ('output',amp.String()), ('filename',amp.String())]
