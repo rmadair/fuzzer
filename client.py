@@ -111,7 +111,7 @@ def check_usage(args):
     ''' Parse command line options - yes, these aren't really "options".... deal with it '''
 
     parser = OptionParser()
-    parser.add_option('-s', action="store", dest="host", help='Server to connect to', metavar="host")
+    parser.add_option('-s', action="store", dest="host", help='Server to connect to', metavar="server")
     parser.add_option('-p', action="store", dest="port", help='Port to connect on', type='int', metavar="port")
     parser.add_option('-t', action="store", dest="temp_directory", help='Temporary directory for files to be created', metavar="temp_directory")
     parser.add_option('-g', action="store", dest="save_directory", help='Save-directory, for files to be saved that cause crashes', metavar="save_directory")

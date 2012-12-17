@@ -6,7 +6,7 @@ from time import time
 import commands
 
 # for mutations
-from Mutator import MutationGenerator
+from Mutator import MutationGenerator, Mutator
 
 from optparse import OptionParser
 from os.path import split
@@ -30,6 +30,8 @@ class FuzzerServerProtocol(amp.AMP):
         self.factory.log_file.flush()
         # add it to the servers list
         self.factory.crashes.append({'mutation_index':mutation_index, 'offset':offset, 'output':output, 'filename':filename})
+        # create the file locally
+        print 'Created file :', self.factory.mutator.createMutatedFile(offset, mutation_index)
         return {}
 
     @commands.GetOriginalFile.responder
@@ -55,14 +57,16 @@ class FuzzerServerProtocol(amp.AMP):
 class FuzzerFactory(ServerFactory):
     protocol = FuzzerServerProtocol
 
-    def __init__(self, program, original_file, log_file_name, mutation_type):
+    def __init__(self, program, original_file, log_file_name, mutation_type, directory):
         print 'FuzzerFactory(...) started'
-        self.mutation_generator = MutationGenerator(mutation_type)
+        self.mutation_generator = MutationGenerator(mutation_type)  # create the list of mutations
+        self.mutator            = None                              # to create the files that reportedly cause crashes
         self.mutations          = self.mutation_generator.getValues()
         self.mutations_range    = range(len(self.mutations))
         self.file_name          = split(original_file)[1]       # just the filename
         self.program            = program
         self.log_file_name      = log_file_name                 # just the name
+        self.directory          = directory                     # directory to save crash causing files
         self.log_file           = None                          # the opened instance
         self.contents           = None
         self.contents_range     = None
@@ -84,6 +88,9 @@ class FuzzerFactory(ServerFactory):
             self.log_file = open(self.log_file_name, 'w')
         except Exception as e:
             quit('Unable to open logfile "%s". Error: %s' % (self.log_file_name, self.log_file))
+
+        # we have all the pieces for the mutator now
+        self.mutator = Mutator(self.contents, self.mutations, self.file_name, self.directory)
 
         # a thread to handle user input and print statistics
         menu_thread = Thread(target=self.menu)
@@ -168,19 +175,20 @@ def check_usage(args):
     parser.add_option('-t', action="store", dest="mutation_type", help='Type of mutation ("byte", "word", "dword")', metavar="mutation_type")
     parser.add_option('-l', action="store", dest="log_file", help='Log file', metavar="log")
     parser.add_option('-p', action="store", dest="port", help='Port to listen on', type='int', metavar="port")
+    parser.add_option('-d', action="store", dest="directory", help="Directory to save files that cause crashes", metavar="directory")
     parser.epilog = "Example:\n\n"
-    parser.epilog += './server.py -e "C:\Program Files\Blah\prog.exe" -f original_file.mp3 -t dword -l log.txt -p 12345'
+    parser.epilog += './server.py -e "C:\Program Files\Blah\prog.exe" -f original_file.mp3 -t dword -l log.txt -p 12345 -d save'
     options, args = parser.parse_args(args)
 
     # make sure enough args are passed
-    if not all((options.program_cmd_line, options.original_file, options.mutation_type, options.log_file, options.port)):
-        parser.error("Incorrect number of arguments - must specify program, original_file, mutation_type, log_file, port")
+    if not all((options.program_cmd_line, options.original_file, options.mutation_type, options.log_file, options.port, options.directory)):
+        parser.error("Incorrect number of arguments - must specify program, original_file, mutation_type, log_file, port, directory")
 
     return options
 
 if __name__ == '__main__':
     options = check_usage(argv)
-    factory = FuzzerFactory(options.program_cmd_line, options.original_file, options.log_file, options.mutation_type)
+    factory = FuzzerFactory(options.program_cmd_line, options.original_file, options.log_file, options.mutation_type, options.directory)
     reactor.listenTCP(options.port, factory)
     reactor.run()
 

@@ -6,10 +6,10 @@ import mutations
 
 class Mutator():
 
-    def __init__(self, original_file, mutation_types, original_file_name, tmp_directory):
+    def __init__(self, original_file, mutation_types, original_file_name, directory):
         self.original_file  = original_file		# original contents of file
         self.mutation_types = mutation_types	# list of possible mutations
-        self.tmp_directory  = tmp_directory
+        self.directory  = directory
         self.original_file_name = original_file_name
         self.original_file_base = splitext(self.original_file_name) [0]
         self.original_file_ext  = splitext(self.original_file_name) [1]
@@ -35,7 +35,7 @@ class Mutator():
 
         # create the new file name, then it's full path
         mutated_file_name = self.createMutatedFileName(offset, mutation_index)
-        mutated_file_name = join(self.tmp_directory, mutated_file_name)
+        mutated_file_name = join(self.directory, mutated_file_name)
 
         # write the file
         try:
