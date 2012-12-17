@@ -37,11 +37,11 @@
 	  <h3>Architecture</h3>
       <p>The architecture for the fuzzer follows the client/server model. Any number of clients can connect to the server, allowing for
       very fast execution. I personally connect about a dozen clients per box to the server, your specs may vary. The communication between
-      client and server basically follows :<br />
+      client and server basically follows:<br /><br />
       1. Client connects to server, gets a copy of the original file, possible mutations, and path to the target excutable<br />
       2. Client enters loop. Ask the server for next mutation, server responds with offset into the file and mutation index<br />
       3. Client creates the mutated file (less network communication), executes it with PyDBG.<br />
-      4. *If* a crash occurs, client send crash information to the server, and the server creates a local copy of the file<br />
+      4. *If* a crash occurs, client send crash information to the server, and the server creates a local copy of the file<br /><br />
       During execution the server gives you the ability to show : clients, mutation statistics, crashes. The server can also
       be paused, causing clients to sleep for a little bit before checking back.</p>
 	  <img src="https://raw.github.com/rmadair/fuzzer/gh-pages/images/architecture_v2.png" />
